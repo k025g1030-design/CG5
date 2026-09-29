@@ -40,7 +40,7 @@ Shader "CustomRenderTexture/01_Simple"
 
             fixed4 frag(float4 i:SV_POSITION) : SV_TARGET
             {
-                return RGB255(255,127,0);
+                return _Color;
             }
             ENDCG
         }
