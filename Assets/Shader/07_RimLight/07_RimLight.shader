@@ -6,10 +6,16 @@ Shader "CustomRenderTexture/06_ToonShading"
         _MainTex("InputTex", 2D) = "white" {}
         _Threshold ("Toon Threshold", Range(0, 1)) = 0.5
 
+        [Toggle] _UseRimLight ("Enable Rim Light", Float) = 0
         _RimColor ("Rim Color", Color) = (1,1,1,1)
         _RimPower ("Rim Power", Range(0.5, 10)) = 3
         _RimIntensity ("Rim Intensity", Range(0, 2)) = 0.5
         _RimThreshold ("Rim Threshold", Range(0, 1)) = 0.5
+
+        [Toggle] _UseSpecular ("Enable Specular", Float) = 0
+        _SpecularColor ("Specular Color", Color) = (1,1,1,1)
+        _SpecularPower ("Specular Power", Range(1,128)) = 32
+        _SpecularIntensity ("Specular Intensity", Range(0,2)) = 0.5
      }
 
      SubShader
@@ -30,11 +36,18 @@ Shader "CustomRenderTexture/06_ToonShading"
             sampler2D   _MainTex;
             float4      _MainTex_ST;
             float       _Threshold;
+            
+            bool        _UseRimLight;
             float4      _RimColor;
             float       _RimPower;
             float       _RimIntensity;
             float       _RimThreshold;
             
+            bool        _UseSpecular;
+            float4      _SpecularColor;
+            float       _SpecularPower;
+            float       _SpecularIntensity;
+
             struct appdata
             {
                 float4 vertex : POSITION;    
@@ -62,8 +75,10 @@ Shader "CustomRenderTexture/06_ToonShading"
 
             float4 frag(v2f i) : SV_Target
             {
+                // !!!This approach is for testing purposes only.
                 float res = step(_Threshold, saturate(dot(normalize(i.normal), normalize(_WorldSpaceLightPos0.xyz))));
 
+                
                 float2 tiling = _MainTex_ST.xy;
                 float2 offset = _MainTex_ST.zw;
                 // phong lighting
@@ -79,13 +94,19 @@ Shader "CustomRenderTexture/06_ToonShading"
                
                 float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
                 float3 reflectDir = reflect(-lightDir, N);
+                fixed4 specular = pow(saturate(dot(reflectDir, eyeDir)), 20) * _LightColor0 ;
                 fixed4 diffuse =  saturate(dot(N, lightDir)) * _LightColor0 * _Color;
                 fixed4 ambient =  res * _LightColor0 * _Color;
 
                 fixed4 phong = diffuse + ambient;
+                if (_UseSpecular) {
+                    phong += specular;
+                }
                 
                 fixed4 col = tex2D(_MainTex, i.uv * tiling + offset) * phong;
-                col.rgb += rimlight;
+                if (_UseRimLight) {
+                    col.rgb += rimlight;
+                }
                 
                 //fixed4 diffuse = res * _Color.rgb * _LightColor0.rgb;
                 //return fixed4(diffuse, _Color.a);
